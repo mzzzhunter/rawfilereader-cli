@@ -2,7 +2,7 @@
 
 A command-line interface that wraps [RawFileReaderPyAdapter](https://github.com/mzzzhunter/RawFileReaderPyAdapter) so AI agents and shell scripts can read Thermo Fisher `.raw` mass spectrometry files via subprocess calls. Every command outputs JSON to stdout.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mzzzhunter/rawfilereader-cli/blob/main/notebooks/rawfilereader_cli_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mzzzhunter/rawfilereader-cli/blob/claude/cli-file-access-agent-xsdMh/notebooks/rawfilereader_cli_colab.ipynb)
 
 ---
 
@@ -239,7 +239,7 @@ print(sr["first_scan"], "–", sr["last_scan"])
 
 The Colab notebook walks through every command with live plots:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mzzzhunter/rawfilereader-cli/blob/main/notebooks/rawfilereader_cli_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mzzzhunter/rawfilereader-cli/blob/claude/cli-file-access-agent-xsdMh/notebooks/rawfilereader_cli_colab.ipynb)
 
 Source: [`notebooks/rawfilereader_cli_colab.ipynb`](notebooks/rawfilereader_cli_colab.ipynb)
 
