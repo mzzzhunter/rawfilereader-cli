@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rawfilereader-cli"
+version = "0.1.0"
+description = "CLI wrapper for rawfilereader-python exposing Thermo RAW file reading to AI agents"
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.1",
+    "numpy",
+    "rawfilereader-python @ git+https://github.com/mzzzhunter/RawFileReaderPyAdapter.git",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+
+[project.scripts]
+rawfilereader = "rawfilereader_cli.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

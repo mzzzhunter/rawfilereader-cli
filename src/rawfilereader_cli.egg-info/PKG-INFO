@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: rawfilereader-cli
+Version: 0.1.0
+Summary: CLI wrapper for rawfilereader-python exposing Thermo RAW file reading to AI agents
+Requires-Python: >=3.8
+Requires-Dist: click>=8.1
+Requires-Dist: numpy
+Requires-Dist: rawfilereader-python @ git+https://github.com/mzzzhunter/RawFileReaderPyAdapter.git
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
