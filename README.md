@@ -10,11 +10,11 @@ A command-line interface that wraps [RawFileReaderPyAdapter](https://github.com/
 
 - Python ≥ 3.8
 - .NET 8 runtime (required by Thermo's RawFileReader library)
-- Windows, macOS, or Linux (with .NET installed)
+- Windows or Linux (with .NET installed)
 
 ### Install .NET 8
 
-**Windows / macOS:** Download from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0).
+**Windows:** Download from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0).
 
 **Linux / Colab:**
 ```bash
