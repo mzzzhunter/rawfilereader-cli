@@ -1,7 +1,0 @@
-click>=8.1
-numpy
-rawfilereader-python @ git+https://github.com/mzzzhunter/RawFileReaderPyAdapter.git
-
-[dev]
-pytest>=7.0
-pytest-cov

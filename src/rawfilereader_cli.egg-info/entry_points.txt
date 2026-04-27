@@ -1,2 +1,0 @@
-[console_scripts]
-rawfilereader = rawfilereader_cli.cli:cli
