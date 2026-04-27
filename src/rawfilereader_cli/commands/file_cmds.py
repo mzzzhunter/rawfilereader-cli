@@ -126,12 +126,12 @@ def chromatogram(ctx, file_path, trace_type, filter_string, mass_range,
 
 @file_group.command("chromatogram_peaks")
 @_chromatogram_options
-@click.option("--window", default=5, show_default=True, type=int,
+@click.option("--smooth_window", default=5, show_default=True, type=int,
               help="Moving average smoothing window size")
 @click.option("--file", "file_path", required=True, type=click.Path(exists=True))
 @click.pass_context
 def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
-                       start_scan, end_scan, start_rt, end_rt, window):
+                       start_scan, end_scan, start_rt, end_rt, smooth_window):
     """Extract chromatogram and detect peaks using moving average smoothing."""
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
@@ -148,8 +148,8 @@ def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
             times = np.asarray(data.times, dtype=float)
             intensities = np.asarray(data.intensities, dtype=float)
 
-            if window > 1 and len(intensities) >= window:
-                kernel = np.ones(window) / window
+            if smooth_window > 1 and len(intensities) >= smooth_window:
+                kernel = np.ones(smooth_window) / smooth_window
                 smoothed = np.convolve(intensities, kernel, mode="same")
             else:
                 smoothed = intensities.copy()
@@ -169,7 +169,9 @@ def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
             emit_json(
                 {
                     "trace_type": trace_type,
-                    "smoothing_window": window,
+                    "smooth_window": smooth_window,
+                    "times": times.tolist(),
+                    "smoothed_intensities": smoothed.tolist(),
                     "peaks": peaks,
                     "peak_count": len(peaks),
                 },

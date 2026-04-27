@@ -69,12 +69,14 @@ def test_file_chromatogram_with_rt(mock_adapter, runner):
 
 def test_file_chromatogram_peaks(mock_adapter, runner):
     _, raw_path = mock_adapter
-    result = runner.invoke(cli, ["file", "chromatogram_peaks", "--file", raw_path, "--window", "3"])
+    result = runner.invoke(cli, ["file", "chromatogram_peaks", "--file", raw_path, "--smooth_window", "3"])
     assert result.exit_code == 0
     data = json.loads(result.output)
     assert "peaks" in data
     assert "peak_count" in data
-    assert data["smoothing_window"] == 3
+    assert "times" in data
+    assert "smoothed_intensities" in data
+    assert data["smooth_window"] == 3
     # peaks should be sorted by intensity descending
     intensities = [p["intensity"] for p in data["peaks"]]
     assert intensities == sorted(intensities, reverse=True)
