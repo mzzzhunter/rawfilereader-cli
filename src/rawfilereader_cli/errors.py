@@ -59,6 +59,14 @@ def handle_raw_errors():
         yield
     except _EXCEPTION_CLASSES as exc:
         emit_error(exc)
+    except ValueError as exc:
+        payload = {
+            "error": str(exc),
+            "type": "raw_file_error",
+            "details": {},
+        }
+        print(json.dumps(payload), file=sys.stderr)
+        sys.exit(1)
     except SystemExit:
         raise
     except Exception as exc:
