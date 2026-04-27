@@ -71,8 +71,7 @@ def _apply_max_points(data_dict, array_keys, max_points):
             data_dict[key] = arr[:max_points]
             truncated = True
 
-    if point_count is not None:
-        data_dict["point_count"] = point_count
+    data_dict["point_count"] = point_count if point_count is not None else 0
     if max_points != -1:
         data_dict["truncated"] = truncated
     return data_dict
