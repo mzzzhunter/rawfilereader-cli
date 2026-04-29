@@ -24,6 +24,34 @@ export DOTNET_ROOT="$HOME/.dotnet"
 export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
 ```
 
+### Download Thermo RawFileReader DLLs
+
+The adapter requires Thermo's RawFileReader `.NET` assemblies. Download them from the official repository:
+
+```
+https://github.com/thermofisherlsms/RawFileReader/tree/main/Libs/NetCore/Net8/Assemblies
+```
+
+Click **"Download raw file"** for each `.dll` file, or use a sparse Git clone to grab the whole folder at once:
+
+```bash
+git clone --filter=blob:none --no-checkout --sparse \
+    https://github.com/thermofisherlsms/RawFileReader.git thermo-libs
+cd thermo-libs
+git sparse-checkout set Libs/NetCore/Net8/Assemblies
+git checkout
+```
+
+The assemblies will be in `thermo-libs/Libs/NetCore/Net8/Assemblies/`.
+
+Then point the adapter at the directory:
+
+```bash
+export RAWFILEREADER_LIBS="/path/to/thermo-libs/Libs/NetCore/Net8/Assemblies"
+```
+
+Add this export to your shell profile (`.bashrc`, `.zshrc`, etc.) to make it permanent.
+
 ---
 
 ## Installation
@@ -37,6 +65,21 @@ Or clone and install in editable mode:
 git clone https://github.com/mzzzhunter/rawfilereader-cli.git
 cd rawfilereader-cli
 pip install -e .
+```
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `RAWFILEREADER_LIBS` | **Yes** | Path to the folder containing the Thermo RawFileReader `.dll` assemblies (see [Download Thermo RawFileReader DLLs](#download-thermo-rawfilereader-dlls)) |
+| `DOTNET_ROOT` | Linux/Colab | Path to the .NET runtime root (e.g. `$HOME/.dotnet`) |
+
+```bash
+export RAWFILEREADER_LIBS="/path/to/thermo-libs/Libs/NetCore/Net8/Assemblies"
+export DOTNET_ROOT="$HOME/.dotnet"
+export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
 ```
 
 ---
@@ -92,7 +135,7 @@ rawfilereader file COMMAND --file PATH [OPTIONS]
 | `instrument` | | Instrument count and metadata |
 | `filters` | | All unique scan filter strings |
 | `chromatogram` | `--trace_type`, `--filter_string`, `--mass_range`, `--start_scan`, `--end_scan`, `--start_rt`, `--end_rt` | Extract a chromatogram trace |
-| `chromatogram_peaks` | same as above + `--window` | Detect peaks in a chromatogram |
+| `chromatogram_peaks` | same as above + `--smooth_window` | Detect peaks in a chromatogram |
 
 **Chromatogram options:**
 
@@ -105,7 +148,7 @@ rawfilereader file COMMAND --file PATH [OPTIONS]
 | `--end_scan` | `-1` | Last scan (adapter default = file end) |
 | `--start_rt` | | Start RT in **minutes** (overrides `--start_scan`) |
 | `--end_rt` | | End RT in **minutes** (overrides `--end_scan`) |
-| `--window` *(peaks only)* | `5` | Moving-average smoothing window |
+| `--smooth_window` *(peaks only)* | `5` | Moving-average smoothing window |
 
 ---
 
@@ -198,7 +241,7 @@ rawfilereader file chromatogram \
   --file run.raw
 
 # Detect chromatogram peaks (smoothing window = 9)
-rawfilereader file chromatogram_peaks --window 9 --file run.raw
+rawfilereader file chromatogram_peaks --smooth_window 9 --file run.raw
 
 # Centroid spectrum for scan 42, top 50 peaks only
 rawfilereader scan spectrum --scan_number 42 --max_points 50 --file run.raw
