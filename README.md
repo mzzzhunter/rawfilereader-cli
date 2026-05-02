@@ -46,11 +46,38 @@ The assemblies will be in `thermo-libs/Libs/NetCore/Net8/Assemblies/`.
 
 Then point the adapter at the directory:
 
+**Linux / macOS / Colab (bash/zsh):**
 ```bash
 export RAWFILEREADER_LIBS="/path/to/thermo-libs/Libs/NetCore/Net8/Assemblies"
 ```
+Add this line to `~/.bashrc` or `~/.zshrc` to make it permanent.
 
-Add this export to your shell profile (`.bashrc`, `.zshrc`, etc.) to make it permanent.
+**Windows — PowerShell:**
+```powershell
+$env:RAWFILEREADER_LIBS = "C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies"
+```
+To persist across sessions, add it to your PowerShell profile:
+```powershell
+Add-Content $PROFILE "`n`$env:RAWFILEREADER_LIBS = `"C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies`""
+```
+Or set it permanently via System Properties:
+```powershell
+[System.Environment]::SetEnvironmentVariable(
+    "RAWFILEREADER_LIBS",
+    "C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies",
+    "User"
+)
+```
+
+**Windows — Command Prompt (cmd.exe):**
+```cmd
+set RAWFILEREADER_LIBS=C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies
+```
+To persist across sessions, use `setx`:
+```cmd
+setx RAWFILEREADER_LIBS "C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies"
+```
+> `setx` takes effect in new Command Prompt windows. Re-open the terminal after running it.
 
 ---
 
@@ -76,10 +103,21 @@ pip install -e .
 | `RAWFILEREADER_LIBS` | **Yes** | Path to the folder containing the Thermo RawFileReader `.dll` assemblies (see [Download Thermo RawFileReader DLLs](#download-thermo-rawfilereader-dlls)) |
 | `DOTNET_ROOT` | Linux/Colab | Path to the .NET runtime root (e.g. `$HOME/.dotnet`) |
 
+**Linux / macOS / Colab:**
 ```bash
 export RAWFILEREADER_LIBS="/path/to/thermo-libs/Libs/NetCore/Net8/Assemblies"
 export DOTNET_ROOT="$HOME/.dotnet"
 export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
+```
+
+**Windows — PowerShell:**
+```powershell
+$env:RAWFILEREADER_LIBS = "C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies"
+```
+
+**Windows — Command Prompt:**
+```cmd
+set RAWFILEREADER_LIBS=C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies
 ```
 
 ---
