@@ -173,7 +173,7 @@ rawfilereader file COMMAND --file PATH [OPTIONS]
 | `instrument` | | Instrument count and metadata |
 | `filters` | | All unique scan filter strings |
 | `chromatogram` | `--trace_type`, `--filter_string`, `--mass_range`, `--start_scan`, `--end_scan`, `--start_rt`, `--end_rt` | Extract a chromatogram trace |
-| `chromatogram_peaks` | same as above + `--smooth_window` | Detect peaks in a chromatogram |
+| `chromatogram_peaks` | same as above + `--smooth_window`, `--min_height` | Detect peaks in a chromatogram |
 
 **Chromatogram options:**
 
@@ -187,6 +187,7 @@ rawfilereader file COMMAND --file PATH [OPTIONS]
 | `--start_rt` | | Start RT in **minutes** (overrides `--start_scan`) |
 | `--end_rt` | | End RT in **minutes** (overrides `--end_scan`) |
 | `--smooth_window` *(peaks only)* | `5` | Moving-average smoothing window |
+| `--min_height` *(peaks only)* | `0` | Minimum raw intensity a local maximum must reach to be reported. Accepts scientific notation (e.g. `1e5`, `1e6`). `0` = no filter. |
 
 ---
 
@@ -280,6 +281,9 @@ rawfilereader file chromatogram \
 
 # Detect chromatogram peaks (smoothing window = 9)
 rawfilereader file chromatogram_peaks --smooth_window 9 --file run.raw
+
+# Detect only significant peaks (intensity ≥ 1 million)
+rawfilereader file chromatogram_peaks --min_height 1e6 --file run.raw
 
 # Centroid spectrum for scan 42, top 50 peaks only
 rawfilereader scan spectrum --scan_number 42 --max_points 50 --file run.raw

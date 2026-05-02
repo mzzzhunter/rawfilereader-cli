@@ -77,9 +77,24 @@ def test_file_chromatogram_peaks(mock_adapter, runner):
     assert "times" in data
     assert "smoothed_intensities" in data
     assert data["smooth_window"] == 3
+    assert data["min_height"] == 0.0
     # peaks should be sorted by intensity descending
     intensities = [p["intensity"] for p in data["peaks"]]
     assert intensities == sorted(intensities, reverse=True)
+
+
+def test_file_chromatogram_peaks_min_height(mock_adapter, runner):
+    _, raw_path = mock_adapter
+    # use a very high threshold — should produce zero peaks
+    result = runner.invoke(cli, [
+        "file", "chromatogram_peaks", "--file", raw_path,
+        "--smooth_window", "3", "--min_height", "1e99",
+    ])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["peak_count"] == 0
+    assert data["peaks"] == []
+    assert data["min_height"] == 1e99
 
 
 def test_indent_option(mock_adapter, runner):

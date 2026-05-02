@@ -128,10 +128,12 @@ def chromatogram(ctx, file_path, trace_type, filter_string, mass_range,
 @_chromatogram_options
 @click.option("--smooth_window", default=5, show_default=True, type=int,
               help="Moving average smoothing window size")
+@click.option("--min_height", default=0.0, show_default=True, type=float,
+              help="Minimum peak intensity to include (e.g. 1e5). 0 = no filter.")
 @click.option("--file", "file_path", required=True, type=click.Path(exists=True))
 @click.pass_context
 def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
-                       start_scan, end_scan, start_rt, end_rt, smooth_window):
+                       start_scan, end_scan, start_rt, end_rt, smooth_window, min_height):
     """Extract chromatogram and detect peaks using moving average smoothing."""
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
@@ -157,12 +159,13 @@ def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
             peaks = []
             for i in range(1, len(smoothed) - 1):
                 if smoothed[i] > smoothed[i - 1] and smoothed[i] > smoothed[i + 1]:
-                    peaks.append({
-                        "index": i,
-                        "retention_time": float(times[i]),
-                        "intensity": float(intensities[i]),
-                        "smoothed_intensity": float(smoothed[i]),
-                    })
+                    if intensities[i] >= min_height:
+                        peaks.append({
+                            "index": i,
+                            "retention_time": float(times[i]),
+                            "intensity": float(intensities[i]),
+                            "smoothed_intensity": float(smoothed[i]),
+                        })
 
             peaks.sort(key=lambda p: p["intensity"], reverse=True)
 
@@ -170,6 +173,7 @@ def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
                 {
                     "trace_type": trace_type,
                     "smooth_window": smooth_window,
+                    "min_height": min_height,
                     "times": times.tolist(),
                     "smoothed_intensities": smoothed.tolist(),
                     "peaks": peaks,
