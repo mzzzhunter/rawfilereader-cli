@@ -159,24 +159,36 @@ All output is compact JSON on stdout. Errors go to stderr with exit code 1.
 - `search`  — find scans by filter string, retention time, or scan number
 - `analyze` — aggregate operations: summary, average spectra, bulk scan info
 
+### Orient first — always run these before anything else
+```bash
+rawfilereader file info       --file run.raw   # name, date, operator
+rawfilereader file scan_range --file run.raw   # {first_scan, last_scan}
+rawfilereader analyze summary --file run.raw   # scan counts by MS order
+rawfilereader file filters    --file run.raw   # all unique filter strings
+```
+
 ### Common commands
 ```bash
-rawfilereader file info           --file run.raw       # metadata + run header
-rawfilereader file scan_range     --file run.raw       # {first_scan, last_scan}
-rawfilereader file filters        --file run.raw       # {filters: [...]}
 rawfilereader scan stats          --file run.raw --scan_number 1
 rawfilereader scan spectrum       --file run.raw --scan_number 1 --max_points 20
+rawfilereader scan trailer        --file run.raw --scan_number 1
 rawfilereader search by_filter    --file run.raw --filter_string "Full ms"
+rawfilereader search by_rt        --file run.raw --retention_time 4.5
 rawfilereader search rt_for_scan  --file run.raw --scan_number 1
-rawfilereader analyze summary     --file run.raw       # scan counts by MS order
+rawfilereader analyze average_scans --file run.raw --first_scan 1 --last_scan 50
+rawfilereader analyze scan_info_range --file run.raw --ms_order 2 --stream
+rawfilereader file chromatogram_peaks --file run.raw --min_height 1e5
 ```
 
 ### Tips
 - Pass `--indent 2` for readable output when inspecting manually.
-- `--max_points -1` returns metadata only (no large arrays) — use it to check
-  scan counts before fetching full data.
-- `--stream` on iterate commands emits one JSON object per line (NDJSON).
+- `--max_points -1` returns metadata only (no arrays) — check `point_count`
+  before fetching full spectrum data.
+- `--stream` on iterate commands emits one JSON object per line (NDJSON) —
+  use for large files to avoid buffering.
 - All retention times are in **minutes**.
+- **See SKILL.md** for six ready-to-run multi-step analysis recipes
+  (file overview, chromatogram peaks, MS² survey, averaged spectrum, and more).
 ```
 
 ### 3.2 Start a Claude Code session
@@ -284,7 +296,7 @@ rawfilereader file filters        --file F  # {filters: [...]}
 rawfilereader file instrument     --file F  # instrument count + info
 rawfilereader file chromatogram   --file F  --trace_type BasePeak|TIC
     [--start_rt MIN] [--end_rt MIN] [--filter_string STR]
-rawfilereader file chromatogram_peaks --file F [--smooth_window 5]
+rawfilereader file chromatogram_peaks --file F [--smooth_window 5] [--min_height 1e5]
 ```
 
 **scan** — per-scan data
@@ -295,11 +307,12 @@ rawfilereader scan spectrum  --file F --scan_number N [--max_points N]
 rawfilereader scan profile   --file F --scan_number N [--max_points N]
 rawfilereader scan trailer   --file F --scan_number N
 rawfilereader scan filter    --file F --scan_number N
+rawfilereader scan dependents --file F --scan_number N [--depth 1]
 ```
 
 **search** — find scans
 ```bash
-rawfilereader search by_filter    --file F --filter_string STR
+rawfilereader search by_filter    --file F --filter_string STR [--start_scan N] [--end_scan N]
 rawfilereader search by_rt        --file F --retention_time MIN
 rawfilereader search rt_for_scan  --file F --scan_number N
 rawfilereader search iterate_filter --file F --filter_string STR \
@@ -309,7 +322,7 @@ rawfilereader search iterate_filter --file F --filter_string STR \
 **analyze** — aggregates
 ```bash
 rawfilereader analyze summary          --file F
-rawfilereader analyze average_scans    --file F --first_scan N --last_scan N
+rawfilereader analyze average_scans    --file F --first_scan N --last_scan N [--filter_string STR]
 rawfilereader analyze scan_info_range  --file F [--ms_order INT] [--stream]
 ```
 
@@ -328,6 +341,19 @@ rawfilereader analyze scan_info_range  --file F [--ms_order INT] [--stream]
 | `--indent N` | Pretty-print JSON with N spaces |
 
 All retention times are in **minutes**.
+
+### Workflow tips
+- **Orient first:** run `file info`, `file scan_range`, `analyze summary`, and
+  `file filters` before anything else — this avoids out-of-range scan/RT errors.
+- **Metadata before arrays:** use `--max_points -1` to check `point_count` before
+  loading full spectrum data.
+- **Stream large sets:** use `--stream` with `analyze scan_info_range` or
+  `search iterate_filter` to avoid buffering thousands of objects.
+- **Narrow before iterating:** pass `--start_scan`/`--end_scan` to
+  `search by_filter` before looping over `scan stats`.
+- **RT navigation:** always resolve RT→scan via `search by_rt`; never guess
+  scan numbers from retention times arithmetically.
+- **See SKILL.md** for six ready-to-use multi-step analysis recipes.
 ```
 
 ### 4.3 Start a Codex session
@@ -445,7 +471,9 @@ def run_agent(user_message: str, raw_file: str) -> str:
     system = (
         f"You are a mass spectrometry data analyst. "
         f"The user's RAW file is at: {raw_file}\n"
-        "Use the rawfilereader tool to answer questions about the file."
+        "Use the rawfilereader tool to answer questions about the file.\n"
+        "Always start by calling file info, file scan_range, analyze summary, "
+        "and file filters to orient yourself before querying individual scans."
     )
     messages = [{"role": "user", "content": user_message}]
 
@@ -545,7 +573,9 @@ def call_rawfilereader(args: list[str]) -> str:
 def run_agent(user_message: str, raw_file: str) -> str:
     system = (
         f"You are a mass spectrometry analyst. The RAW file is: {raw_file}. "
-        "Use the rawfilereader function to explore it."
+        "Use the rawfilereader function to explore it. "
+        "Always call file info, file scan_range, analyze summary, and file filters "
+        "first to orient yourself before querying individual scans."
     )
     messages = [
         {"role": "system", "content": system},
@@ -584,75 +614,54 @@ print(answer)
 
 ---
 
-## 6. Skill walkthrough — max-intensity m/z per filter
+## 6. Skill library (`SKILL.md`)
 
-This multi-step skill (defined in full in `SKILL.md`) finds the highest-intensity
-peak for every unique scan filter string in a file.
+`SKILL.md` at the repo root contains six ready-to-use multi-step recipes.
+Each is a standalone Python function built on the shared `_run` / `_stream`
+helpers. Point agents at this file for complex analyses.
 
-### What to ask the agent
+| # | Skill | Commands used | Good prompt |
+|---|---|---|---|
+| 1 | **File overview** | `file info`, `file scan_range`, `analyze summary`, `file filters` | *"Summarise this RAW file"* |
+| 2 | **Max-intensity m/z per filter** | `file filters`, `search by_filter`, `scan stats` | *"Which m/z dominates each filter?"* |
+| 3 | **Chromatogram peak table** | `file chromatogram_peaks`, `search by_rt` | *"Find all elution peaks above 1e6 intensity"* |
+| 4 | **Spectrum at retention time** | `search by_rt`, `scan stats`, `scan spectrum` | *"Show me the spectrum at 4.5 min"* |
+| 5 | **MS² precursor survey** | `analyze scan_info_range --stream`, `scan trailer` | *"List every MS2 precursor with charge state"* |
+| 6 | **Averaged spectrum** | `search by_filter`, `analyze average_scans` | *"Average all MS1 scans for a clean spectrum"* |
 
-> "For each unique filter string in sample.raw, find the scan with the highest
-> base-peak intensity and report the m/z, intensity, and filter — sorted from
-> most to least intense."
+### Example — Skill 2 step-by-step (max-intensity m/z)
 
-### Step-by-step execution
-
-**Step 1 — get all filter strings:**
 ```bash
+# Step 1 — list filter strings
 rawfilereader file filters --file sample.raw
-```
-```json
-{
-  "filters": [
-    "FTMS + p NSI Full ms [200.00-2000.00]",
-    "FTMS + c NSI d Full ms2 445.12@hcd28.00 [100.00-1500.00]",
-    "FTMS + c NSI d Full ms2 612.30@hcd28.00 [100.00-800.00]"
-  ]
-}
-```
+# → {"filters": ["FTMS + p NSI Full ms [200.00-2000.00]", ...]}
 
-**Step 2 — for each filter, get matching scan numbers:**
-```bash
+# Step 2 — scan numbers for each filter
 rawfilereader search by_filter --file sample.raw \
     --filter_string "FTMS + p NSI Full ms [200.00-2000.00]"
-```
-```json
-{"filter_string": "FTMS + p NSI Full ms [200.00-2000.00]",
- "scan_numbers": [1, 3, 5, 7, ...], "count": 1921}
-```
+# → {"scan_numbers": [1, 3, 5, ...], "count": 1921}
 
-**Step 3 — for each scan get stats, track the best:**
-```bash
+# Step 3 — base-peak stats per scan
 rawfilereader scan stats --file sample.raw --scan_number 1
-```
-```json
-{
-  "scan_number": 1,
-  "tic": 5.23e8,
-  "base_peak_mass": 445.1185,
-  "base_peak_intensity": 9.123e7,
-  "low_mass": 200.0,
-  "high_mass": 2000.0,
-  "retention_time": 0.017
-}
+# → {"base_peak_mass": 445.1185, "base_peak_intensity": 9.123e7, ...}
 ```
 
-**Step 4 — collect best per filter and sort:**
-
-After iterating all scans for all filters, the agent assembles:
-
+Final table (sorted by intensity):
 ```
          m/z       intensity  filter
-------------------------------------------------------------------------------------------
    445.1185    9.123e+07  FTMS + p NSI Full ms [200.00-2000.00]
    612.3041    3.457e+06  FTMS + c NSI d Full ms2 445.12@hcd28.00 [100.00-1500.00]
-   204.0865    1.102e+06  FTMS + c NSI d Full ms2 612.30@hcd28.00 [100.00-800.00]
 ```
 
-### Standalone Python script (no agent needed)
+### Skills compose
 
-See `SKILL.md` for the complete self-contained script that runs the same
-algorithm directly via `subprocess`.
+```python
+# Orient → find peaks → fetch spectrum → average background
+overview = file_overview("run.raw")
+peaks    = chromatogram_peak_table("run.raw", min_height=1e6)
+spec     = spectrum_at_rt("run.raw", peaks[0]["retention_time"])
+avg      = averaged_spectrum("run.raw", overview["filters"][0])
+```
 
 ---
 
@@ -665,7 +674,7 @@ algorithm directly via `subprocess`.
 | `file` | `filters` | `--file` | |
 | `file` | `instrument` | `--file` | |
 | `file` | `chromatogram` | `--file` | `--trace_type`, `--start_rt`, `--end_rt`, `--filter_string`, `--mass_range` |
-| `file` | `chromatogram_peaks` | `--file` | same + `--smooth_window` |
+| `file` | `chromatogram_peaks` | `--file` | same + `--smooth_window`, `--min_height` |
 | `scan` | `info` | `--file`, `--scan_number` OR `--ms_order` | `--stream` |
 | `scan` | `stats` | `--file`, `--scan_number` | |
 | `scan` | `spectrum` | `--file`, `--scan_number` | `--prefer_profile`, `--max_points` |
