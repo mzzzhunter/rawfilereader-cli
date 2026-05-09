@@ -56,6 +56,32 @@ def instrument(ctx, file_path):
             emit_json(result, indent=ctx.obj.get("indent"))
 
 
+def _unique_method_device_key(name, index, seen):
+    """Return a stable JSON object key for a method device name."""
+    base = str(name) if name else f"device_{index}"
+    count = seen.get(base, 0)
+    seen[base] = count + 1
+    if count == 0:
+        return base
+    return f"{base} ({count + 1})"
+
+
+@file_group.command("method")
+@click.option("--file", "file_path", required=True, type=click.Path(exists=True))
+@click.pass_context
+def method(ctx, file_path):
+    """Instrument method strings keyed by device name."""
+    with handle_raw_errors():
+        with RawFileAdapter(file_path) as adapter:
+            device_names = adapter.get_all_instrument_names_from_method()
+            seen = {}
+            result = {}
+            for index, device_name in enumerate(device_names):
+                key = _unique_method_device_key(device_name, index, seen)
+                result[key] = adapter.get_instrument_method(index=index)
+            emit_json(result, indent=ctx.obj.get("indent"))
+
+
 @file_group.command("filters")
 @click.option("--file", "file_path", required=True, type=click.Path(exists=True))
 @click.pass_context

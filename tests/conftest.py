@@ -117,6 +117,11 @@ def _make_mock_adapter():
     adapter.get_scan_range.return_value = (1, 100)
     adapter.get_instrument_count.return_value = 1
     adapter.get_instrument_data.return_value = _InstrumentInfo()
+    adapter.get_all_instrument_names_from_method.return_value = ["MS", "LC"]
+    adapter.get_instrument_method.side_effect = lambda index=0: [
+        "MS method text",
+        "LC method text",
+    ][index]
     adapter.get_filters.return_value = ["FTMS + p NSI Full ms [400.00-1600.00]"]
     adapter.get_scan_info.return_value = _ScanInfo()
     adapter.iter_scan_info.return_value = iter([_ScanInfo(scan_number=1), _ScanInfo(scan_number=2)])
