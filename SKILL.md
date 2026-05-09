@@ -38,7 +38,7 @@ def _stream(raw_file: str, *args) -> list[dict]:
 **When to use:** Always run this first. Gives the agent the context needed to
 make sensible decisions about scan ranges, retention times, and filter strings.
 
-**Commands used:** `file info`, `file scan_range`, `analyze summary`, `file filters`
+**Commands used:** `file info`, `file scan_range`, `analyze summary`, `file filters`, `file method`
 
 ```python
 def file_overview(raw_file: str) -> dict:
@@ -47,6 +47,7 @@ def file_overview(raw_file: str) -> dict:
     sr      = _run(raw_file, "file", "scan_range")
     summary = _run(raw_file, "analyze", "summary")
     filters = _run(raw_file, "file", "filters")["filters"]
+    method  = _run(raw_file, "file", "method")
 
     return {
         "name":       info["file_info"].get("name"),
@@ -57,6 +58,7 @@ def file_overview(raw_file: str) -> dict:
         "scan_count": sr["last_scan"] - sr["first_scan"] + 1,
         "ms_orders":  summary["summary"],   # e.g. {"1": 1921, "2": 1921}
         "filters":    filters,
+        "method":     method,      # e.g. {"MS": "...", "LC": "..."}
     }
 ```
 
@@ -73,7 +75,11 @@ def file_overview(raw_file: str) -> dict:
   "filters": [
     "FTMS + p NSI Full ms [200.00-2000.00]",
     "FTMS + c NSI d Full ms2 445.12@hcd28.00 [100.00-1500.00]"
-  ]
+  ],
+  "method": {
+    "MS": "MS instrument method text",
+    "LC": "LC gradient method text"
+  }
 }
 ```
 
