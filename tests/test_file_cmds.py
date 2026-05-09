@@ -48,6 +48,38 @@ def test_file_filters(mock_adapter, runner):
     assert len(data["filters"]) == 1
 
 
+def test_file_method(mock_adapter, runner):
+    adapter, raw_path = mock_adapter
+    result = runner.invoke(cli, ["file", "method", "--file", raw_path])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data == {
+        "MS": "MS method text",
+        "LC": "LC method text",
+    }
+    adapter.get_all_instrument_names_from_method.assert_called_once_with()
+    assert adapter.get_instrument_method.call_count == 2
+    adapter.get_instrument_method.assert_any_call(index=0)
+    adapter.get_instrument_method.assert_any_call(index=1)
+
+
+def test_file_method_deduplicates_device_names(mock_adapter, runner):
+    adapter, raw_path = mock_adapter
+    adapter.get_all_instrument_names_from_method.return_value = ["MS", "MS"]
+    adapter.get_instrument_method.side_effect = lambda index=0: [
+        "first MS method",
+        "second MS method",
+    ][index]
+
+    result = runner.invoke(cli, ["file", "method", "--file", raw_path])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data == {
+        "MS": "first MS method",
+        "MS (2)": "second MS method",
+    }
+
+
 def test_file_chromatogram(mock_adapter, runner):
     _, raw_path = mock_adapter
     result = runner.invoke(cli, ["file", "chromatogram", "--file", raw_path, "--trace_type", "BasePeak"])

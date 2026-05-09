@@ -128,6 +128,7 @@ set RAWFILEREADER_LIBS=C:\path\to\thermo-libs\Libs\NetCore\Net8\Assemblies
 # File overview
 rawfilereader file info       --file run.raw
 rawfilereader file scan_range --file run.raw
+rawfilereader file method     --file run.raw
 
 # Extract the Base Peak Chromatogram
 rawfilereader file chromatogram --file run.raw --trace_type BasePeak
@@ -171,6 +172,7 @@ rawfilereader file COMMAND --file PATH [OPTIONS]
 | `info` | | File metadata and run header |
 | `scan_range` | | First and last scan number |
 | `instrument` | | Instrument count and metadata |
+| `method` | | Instrument method strings keyed by method device name |
 | `filters` | | All unique scan filter strings |
 | `chromatogram` | `--trace_type`, `--filter_string`, `--mass_range`, `--start_scan`, `--end_scan`, `--start_rt`, `--end_rt` | Extract a chromatogram trace |
 | `chromatogram_peaks` | same as above + `--smooth_window`, `--min_height` | Detect peaks in a chromatogram |
@@ -256,6 +258,19 @@ rawfilereader analyze COMMAND --file PATH [OPTIONS]
 
 Error types: `raw_file_error`, `not_open_error`, `scan_not_found`, `instrument_error`, `assembly_load_error`, `in_acquisition_error`, `unexpected_error`.
 
+### Method output
+
+`rawfilereader file method --file run.raw` returns a JSON object whose keys are the device names reported by `get_all_instrument_names_from_method()` and whose values are the corresponding `get_instrument_method(index=N)` strings:
+
+```json
+{
+  "MS": "MS method text",
+  "LC": "LC method text"
+}
+```
+
+If a RAW file reports duplicate device names, later duplicates are suffixed, for example `"MS (2)"`, so the JSON object keeps every method string.
+
 ### Streaming output (`--stream`)
 
 Commands that return arrays support `--stream` to emit one JSON object per line (NDJSON), useful for large files:
@@ -272,6 +287,9 @@ rawfilereader analyze scan_info_range --ms_order 1 --stream --file run.raw \
 ```bash
 # Pretty-print all file metadata
 rawfilereader --indent 2 file info --file run.raw
+
+# Extract instrument methods keyed by method device name
+rawfilereader --indent 2 file method --file run.raw
 
 # TIC chromatogram for the first 5 minutes
 rawfilereader file chromatogram \
