@@ -165,6 +165,7 @@ rawfilereader file info       --file run.raw   # name, date, operator
 rawfilereader file scan_range --file run.raw   # {first_scan, last_scan}
 rawfilereader analyze summary --file run.raw   # scan counts by MS order
 rawfilereader file filters    --file run.raw   # all unique filter strings
+rawfilereader file method     --file run.raw   # instrument methods by device
 ```
 
 ### Common commands
@@ -294,6 +295,7 @@ rawfilereader file info           --file F  # metadata + run header
 rawfilereader file scan_range     --file F  # {first_scan, last_scan}
 rawfilereader file filters        --file F  # {filters: [...]}
 rawfilereader file instrument     --file F  # instrument count + info
+rawfilereader file method         --file F  # method strings keyed by device name
 rawfilereader file chromatogram   --file F  --trace_type BasePeak|TIC
     [--start_rt MIN] [--end_rt MIN] [--filter_string STR]
 rawfilereader file chromatogram_peaks --file F [--smooth_window 5] [--min_height 1e5]
@@ -673,6 +675,7 @@ avg      = averaged_spectrum("run.raw", overview["filters"][0])
 | `file` | `scan_range` | `--file` | |
 | `file` | `filters` | `--file` | |
 | `file` | `instrument` | `--file` | |
+| `file` | `method` | `--file` | |
 | `file` | `chromatogram` | `--file` | `--trace_type`, `--start_rt`, `--end_rt`, `--filter_string`, `--mass_range` |
 | `file` | `chromatogram_peaks` | `--file` | same + `--smooth_window`, `--min_height` |
 | `scan` | `info` | `--file`, `--scan_number` OR `--ms_order` | `--stream` |
