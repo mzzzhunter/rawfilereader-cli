@@ -1,6 +1,6 @@
-# Claude Instructions — rawfilereader-cli
+# Agent Instructions — rawfilereader-cli
 
-Use these instructions when Claude Code needs to inspect Thermo Fisher `.raw` mass spectrometry files from this repository or a data directory. The project exposes a single shell command, `rawfilereader`, and every subcommand returns JSON on stdout.
+Use these instructions when an AI agent needs to inspect Thermo Fisher `.raw` mass spectrometry files from this repository or a data directory. The project exposes a single shell command, `rawfilereader`, and every subcommand returns JSON on stdout.
 
 ## Environment
 
@@ -173,7 +173,7 @@ Failure output is JSON on stderr with exit code `1`.
 
 Known error `type` values include `raw_file_error`, `not_open_error`, `scan_not_found`, `instrument_error`, `assembly_load_error`, `in_acquisition_error`, and `unexpected_error`.
 
-## Practical guidance for Claude
+## Practical guidance for agents
 
 - Prefer `file scan_range`, `analyze summary`, and `file filters` before making assumptions about a run.
 - Use retention times in minutes for every RT option.
