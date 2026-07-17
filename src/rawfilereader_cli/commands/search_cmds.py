@@ -1,12 +1,18 @@
 import click
 
-from rawfilereader_cli.errors import handle_raw_errors
+from rawfilereader_cli.errors import AssemblyLoadError, handle_raw_errors
 from rawfilereader_cli.serialization import emit_json, to_json
 
 try:
     from rawfilereader import RawFileAdapter
-except ImportError:
-    RawFileAdapter = None
+except ImportError as exc:
+    _ADAPTER_IMPORT_ERROR = exc
+
+    class RawFileAdapter:
+        def __init__(self, *args, **kwargs):
+            raise AssemblyLoadError(
+                f"Unable to import rawfilereader/RawFileAdapter: {_ADAPTER_IMPORT_ERROR}"
+            )
 
 
 @click.group("search")
@@ -24,15 +30,8 @@ def by_filter(ctx, file_path, filter_string, start_scan, end_scan):
     """Return all scan numbers matching a filter string."""
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
-            scan_numbers = adapter.get_filtered_scan_numbers(
-                filter_string,
-                start_scan=start_scan,
-                end_scan=end_scan,
-            )
-            emit_json(
-                {"filter_string": filter_string, "scan_numbers": scan_numbers, "count": len(scan_numbers)},
-                indent=ctx.obj.get("indent"),
-            )
+            scan_numbers = adapter.get_filtered_scan_numbers(filter_string, start_scan=start_scan, end_scan=end_scan)
+            emit_json({"filter_string": filter_string, "scan_numbers": scan_numbers, "count": len(scan_numbers)}, indent=ctx.obj.get("indent"))
 
 
 @search_group.command("by_rt")
@@ -44,10 +43,7 @@ def by_rt(ctx, file_path, retention_time):
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
             scan_number = adapter.scan_number_from_retention_time(retention_time)
-            emit_json(
-                {"retention_time": retention_time, "scan_number": scan_number},
-                indent=ctx.obj.get("indent"),
-            )
+            emit_json({"retention_time": retention_time, "scan_number": scan_number}, indent=ctx.obj.get("indent"))
 
 
 @search_group.command("rt_for_scan")
@@ -59,10 +55,7 @@ def rt_for_scan(ctx, file_path, scan_number):
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
             rt = adapter.get_retention_time(scan_number)
-            emit_json(
-                {"scan_number": scan_number, "retention_time": rt},
-                indent=ctx.obj.get("indent"),
-            )
+            emit_json({"scan_number": scan_number, "retention_time": rt}, indent=ctx.obj.get("indent"))
 
 
 @search_group.command("iterate_filter")
@@ -76,17 +69,10 @@ def iterate_filter(ctx, file_path, filter_string, start_time, end_time, stream):
     """Iterate scan numbers matching a filter string within an optional time window."""
     with handle_raw_errors():
         with RawFileAdapter(file_path) as adapter:
-            scan_iter = adapter.iterate_filtered_scans(
-                filter_string,
-                start_time=start_time,
-                end_time=end_time,
-            )
+            scan_iter = adapter.iterate_filtered_scans(filter_string, start_time=start_time, end_time=end_time)
             if stream:
                 for sn in scan_iter:
                     print(to_json({"scan_number": sn}))
             else:
                 scan_numbers = list(scan_iter)
-                emit_json(
-                    {"filter_string": filter_string, "scan_numbers": scan_numbers, "count": len(scan_numbers)},
-                    indent=ctx.obj.get("indent"),
-                )
+                emit_json({"filter_string": filter_string, "scan_numbers": scan_numbers, "count": len(scan_numbers)}, indent=ctx.obj.get("indent"))

@@ -1,15 +1,27 @@
 import dataclasses
+import inspect
 
 import click
 import numpy as np
 
-from rawfilereader_cli.errors import handle_raw_errors
+from rawfilereader_cli.errors import AssemblyLoadError, handle_raw_errors
 from rawfilereader_cli.serialization import emit_json
 
 try:
     from rawfilereader import RawFileAdapter
-except ImportError:
+    _ADAPTER_IMPORT_ERROR = None
+except ImportError as exc:
     RawFileAdapter = None
+    _ADAPTER_IMPORT_ERROR = exc
+
+
+def _adapter_class():
+    """Return RawFileAdapter or raise a meaningful setup error."""
+    if RawFileAdapter is None:
+        raise AssemblyLoadError(
+            f"Unable to import rawfilereader/RawFileAdapter: {_ADAPTER_IMPORT_ERROR}"
+        )
+    return RawFileAdapter
 
 
 @click.group("file")
@@ -23,7 +35,7 @@ def file_group():
 def info(ctx, file_path):
     """File metadata and run header summary."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             result = {
                 "file_info": dataclasses.asdict(adapter.get_file_info()),
                 "run_header": dataclasses.asdict(adapter.get_run_header_info()),
@@ -37,7 +49,7 @@ def info(ctx, file_path):
 def scan_range(ctx, file_path):
     """First and last scan number in the file."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             first, last = adapter.get_scan_range()
             emit_json({"first_scan": first, "last_scan": last}, indent=ctx.obj.get("indent"))
 
@@ -48,7 +60,7 @@ def scan_range(ctx, file_path):
 def instrument(ctx, file_path):
     """Instrument count and metadata."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             result = {
                 "count": adapter.get_instrument_count(),
                 "instrument_info": dataclasses.asdict(adapter.get_instrument_data()),
@@ -72,7 +84,7 @@ def _unique_method_device_key(name, index, seen):
 def method(ctx, file_path):
     """Instrument method strings keyed by device name."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             device_names = adapter.get_all_instrument_names_from_method()
             seen = {}
             result = {}
@@ -88,7 +100,7 @@ def method(ctx, file_path):
 def filters(ctx, file_path):
     """All unique scan filter strings in the file."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             emit_json({"filters": adapter.get_filters()}, indent=ctx.obj.get("indent"))
 
 
@@ -96,11 +108,12 @@ def _resolve_scan_bounds(adapter, start_scan, end_scan, start_rt, end_rt, filter
     """Resolve scan bounds from RT, filter_string, or direct scan number inputs."""
     if filter_string:
         scan_nums = adapter.get_filtered_scan_numbers(filter_string)
-        if scan_nums:
-            if start_scan == -1:
-                start_scan = min(scan_nums)
-            if end_scan == -1:
-                end_scan = max(scan_nums)
+        if not scan_nums:
+            raise ValueError(f"No scans matched filter: {filter_string}")
+        if start_scan == -1:
+            start_scan = min(scan_nums)
+        if end_scan == -1:
+            end_scan = max(scan_nums)
 
     if start_rt is not None:
         start_scan = adapter.scan_number_from_retention_time(start_rt)
@@ -108,6 +121,28 @@ def _resolve_scan_bounds(adapter, start_scan, end_scan, start_rt, end_rt, filter
         end_scan = adapter.scan_number_from_retention_time(end_rt)
 
     return start_scan, end_scan
+
+
+def _get_chromatogram(adapter, *, trace_type, filter_string, mass_range, start_scan, end_scan):
+    """Call adapter chromatogram extraction without silently ignoring a filter."""
+    kwargs = {
+        "trace_type": trace_type,
+        "mass_range": mass_range,
+        "start_scan": start_scan,
+        "end_scan": end_scan,
+    }
+    if filter_string:
+        try:
+            parameters = inspect.signature(adapter.get_chromatogram).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        if "filter_string" not in parameters:
+            raise ValueError(
+                "The installed rawfilereader adapter does not support filtered "
+                "chromatogram extraction; refusing to return an unfiltered chromatogram."
+            )
+        kwargs["filter_string"] = filter_string
+    return adapter.get_chromatogram(**kwargs)
 
 
 def _chromatogram_options(f):
@@ -136,12 +171,14 @@ def chromatogram(ctx, file_path, trace_type, filter_string, mass_range,
                  start_scan, end_scan, start_rt, end_rt):
     """Extract a chromatogram trace."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             start_scan, end_scan = _resolve_scan_bounds(
                 adapter, start_scan, end_scan, start_rt, end_rt, filter_string
             )
-            data = adapter.get_chromatogram(
+            data = _get_chromatogram(
+                adapter,
                 trace_type=trace_type,
+                filter_string=filter_string,
                 mass_range=mass_range,
                 start_scan=start_scan,
                 end_scan=end_scan,
@@ -162,12 +199,14 @@ def chromatogram_peaks(ctx, file_path, trace_type, filter_string, mass_range,
                        start_scan, end_scan, start_rt, end_rt, smooth_window, min_height):
     """Extract chromatogram and detect peaks using moving average smoothing."""
     with handle_raw_errors():
-        with RawFileAdapter(file_path) as adapter:
+        with _adapter_class()(file_path) as adapter:
             start_scan, end_scan = _resolve_scan_bounds(
                 adapter, start_scan, end_scan, start_rt, end_rt, filter_string
             )
-            data = adapter.get_chromatogram(
+            data = _get_chromatogram(
+                adapter,
                 trace_type=trace_type,
+                filter_string=filter_string,
                 mass_range=mass_range,
                 start_scan=start_scan,
                 end_scan=end_scan,
