@@ -2,13 +2,19 @@ import dataclasses
 
 import click
 
-from rawfilereader_cli.errors import handle_raw_errors
+from rawfilereader_cli.errors import AssemblyLoadError, handle_raw_errors
 from rawfilereader_cli.serialization import emit_json, to_json
 
 try:
     from rawfilereader import RawFileAdapter
-except ImportError:
-    RawFileAdapter = None
+except ImportError as exc:
+    _ADAPTER_IMPORT_ERROR = exc
+
+    class RawFileAdapter:
+        def __init__(self, *args, **kwargs):
+            raise AssemblyLoadError(
+                f"Unable to import rawfilereader/RawFileAdapter: {_ADAPTER_IMPORT_ERROR}"
+            )
 
 
 @click.group("analyze")
